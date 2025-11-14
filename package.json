@@ -12,12 +12,16 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.3.2",
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",
     "next": "14.0.4",
     "next-auth": "^4.24.5",
+    "lucide-react": "^0.303.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.49.2",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
