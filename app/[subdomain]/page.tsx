@@ -2,6 +2,7 @@ import { getRestaurantFromHeaders } from '@/lib/restaurant-context'
 import { notFound } from 'next/navigation'
 import MenuCategory from '@/components/MenuCategory'
 import { getPageViewsFromHeaders } from '@/lib/analytics'
+import { logger } from '@/lib/logger'
 
 /**
  * Public menu page for subdomain
@@ -21,15 +22,37 @@ export async function generateMetadata() {
   }
 }
 
-export default async function SubdomainPage() {
-  const restaurant = await getRestaurantFromHeaders()
+export default async function SubdomainPage({
+  params,
+}: {
+  params: Promise<{ subdomain: string }> | { subdomain: string }
+}) {
+  // Handle both sync and async params (Next.js 14+)
+  const resolvedParams = await Promise.resolve(params)
+  
+  logger.debug('[SubdomainPage] Params:', resolvedParams)
+  
+  // Try to get restaurant from headers first (set by middleware)
+  let restaurant = await getRestaurantFromHeaders()
+  logger.debug('[SubdomainPage] Restaurant from headers:', restaurant ? restaurant.name : 'not found')
+
+  // If not found in headers, try to get by subdomain from params (fallback)
+  if (!restaurant && resolvedParams.subdomain) {
+    logger.debug('[SubdomainPage] Trying to get restaurant by subdomain from params:', resolvedParams.subdomain)
+    const { getRestaurantBySubdomain } = await import('@/lib/restaurant-context')
+    restaurant = await getRestaurantBySubdomain(resolvedParams.subdomain)
+    logger.debug('[SubdomainPage] Restaurant from params:', restaurant ? restaurant.name : 'not found')
+  }
 
   if (!restaurant) {
+    logger.warn('[SubdomainPage] Restaurant not found, returning 404')
     notFound()
   }
 
   // Track page view (non-blocking)
-  getPageViewsFromHeaders(restaurant.id, '/').catch(console.error)
+  getPageViewsFromHeaders(restaurant.id, '/').catch((error) => {
+    logger.error('[SubdomainPage] Error tracking page view:', error)
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">

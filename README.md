@@ -126,24 +126,40 @@ Giriş sonrası session içinde şu bilgiler bulunur:
 
 - **Password Hashing**: bcryptjs ile hashlenir (12 rounds)
 - **Password Validation**: Minimum 8 karakter zorunludur
-- **Rate Limiting**: Register endpoint'ine rate limiting eklenmesi önerilir (TODO olarak işaretlenmiştir)
+- **Rate Limiting**: Production'da rate limiting eklenmesi önerilir
   - Önerilen: `next-rate-limit`, `@upstash/ratelimit` veya benzeri
   - Önerilen limit: 5 istek / 15 dakika / IP
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options, Referrer-Policy otomatik eklenir
+- **Error Logging**: Production'da sadece error logları gösterilir, debug logları gizlenir
 
 ### Ortam Değişkenleri (.env)
 
 ```env
 # Database
+# Local: postgresql://user:password@localhost:5432/qrmenu?schema=public
+# Supabase: postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
 DATABASE_URL="postgresql://user:password@localhost:5432/qrmenu?schema=public"
 
 # NextAuth
 NEXTAUTH_SECRET="your-secret-key-here-generate-with-openssl-rand-base64-32"
 NEXTAUTH_URL="http://localhost:3000"
+# Production: NEXTAUTH_URL="https://yourdomain.com"
 
 # Subdomain
 BASE_DOMAIN="localhost:3000"
-# Production: BASE_DOMAIN="example.com"
+# Production: BASE_DOMAIN="yourdomain.com"
+
+# Cloudinary (Optional - for production/serverless environments)
+# Get these from: https://cloudinary.com/console
+CLOUDINARY_CLOUD_NAME=""
+CLOUDINARY_API_KEY=""
+CLOUDINARY_API_SECRET=""
+
+# Node Environment
+NODE_ENV="development"
 ```
+
+**Not:** Cloudinary değişkenleri opsiyoneldir. Local development'ta dosyalar `public/uploads/` dizinine kaydedilir. Vercel gibi serverless ortamlarda Cloudinary zorunludur.
 
 **NEXTAUTH_SECRET oluşturma:**
 ```bash

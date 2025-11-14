@@ -13,12 +13,15 @@ export default async function MenuItemsPage() {
   const restaurant = await prisma.restaurant.findFirst({
     where: { ownerId: session.user.id },
     include: {
-      menuCategories: true,
-      menuItems: {
+      menuCategories: {
         include: {
-          category: true,
+          menuItems: {
+            include: {
+              category: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
-        orderBy: { createdAt: 'desc' },
       },
     },
   })
@@ -38,6 +41,17 @@ export default async function MenuItemsPage() {
     )
   }
 
+  // Flatten menuItems from all categories
+  const menuItems = restaurant.menuCategories.flatMap((category) =>
+    category.menuItems.map((item) => ({
+      ...item,
+      category: {
+        id: category.id,
+        name: category.name,
+      },
+    }))
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -55,7 +69,7 @@ export default async function MenuItemsPage() {
         </Link>
       </div>
 
-      {restaurant.menuItems.length === 0 ? (
+      {menuItems.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -71,12 +85,12 @@ export default async function MenuItemsPage() {
           <CardHeader>
             <CardTitle>Ürünler</CardTitle>
             <CardDescription>
-              {restaurant.menuItems.length} ürün bulundu
+              {menuItems.length} ürün bulundu
             </CardDescription>
           </CardHeader>
           <CardContent>
             <MenuItemsList
-              items={restaurant.menuItems}
+              items={menuItems}
               categories={restaurant.menuCategories}
             />
           </CardContent>

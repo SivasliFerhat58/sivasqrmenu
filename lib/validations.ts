@@ -16,7 +16,17 @@ export const menuItemSchema = z.object({
     { message: 'Geçerli bir fiyat giriniz (0\'dan büyük)' }
   ),
   categoryId: z.string().min(1, 'Kategori seçiniz'),
-  imageUrl: z.string().url('Geçerli bir URL giriniz').optional().or(z.literal('')),
+  imageUrl: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val || val === '') return true // Empty is allowed
+        // Accept both absolute URLs (http/https) and relative paths (starting with /)
+        return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/')
+      },
+      { message: 'Geçerli bir URL giriniz' }
+    )
+    .optional(),
   isAvailable: z.boolean().default(true),
 })
 

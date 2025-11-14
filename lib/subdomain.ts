@@ -77,13 +77,31 @@ export function extractSubdomainFromHost(host: string, baseDomain?: string): str
 
   // If baseDomain is provided, extract subdomain
   if (baseDomain) {
-    const baseDomainPattern = new RegExp(`^(.+)\\.${baseDomain.replace(/\./g, '\\.')}$`)
+    // Remove port from baseDomain for pattern matching
+    const baseDomainWithoutPort = baseDomain.split(':')[0]
+    
+    // Special handling for localhost subdomains (e.g., restoran1.localhost)
+    if (baseDomainWithoutPort === 'localhost' || baseDomainWithoutPort.includes('localhost')) {
+      const parts = hostWithoutPort.split('.')
+      // restoran1.localhost -> restoran1
+      if (parts.length === 2 && parts[1] === 'localhost') {
+        return parts[0]
+      }
+      // restoran1.localhost:3000 -> restoran1
+      if (parts.length >= 2 && parts[parts.length - 1] === 'localhost') {
+        return parts[0]
+      }
+    }
+    
+    // Try pattern matching: subdomain.baseDomain
+    const baseDomainPattern = new RegExp(`^(.+)\\.${baseDomainWithoutPort.replace(/\./g, '\\.')}$`)
     const match = hostWithoutPort.match(baseDomainPattern)
     if (match && match[1]) {
       return match[1]
     }
+    
     // If host matches baseDomain exactly, it's the main domain (no subdomain)
-    if (hostWithoutPort === baseDomain) {
+    if (hostWithoutPort === baseDomainWithoutPort) {
       return null
     }
   }
@@ -91,12 +109,18 @@ export function extractSubdomainFromHost(host: string, baseDomain?: string): str
   // Default: assume subdomain is the first part before the first dot
   // This works for patterns like: subdomain.example.com
   const parts = hostWithoutPort.split('.')
-  if (parts.length > 2) {
-    // More than 2 parts means there's likely a subdomain
-    return parts[0]
+  if (parts.length >= 2) {
+    // For localhost, check if it's a subdomain pattern
+    if (parts[parts.length - 1] === 'localhost' && parts.length >= 2) {
+      return parts[0]
+    }
+    // For other domains, need at least 3 parts (subdomain.domain.tld)
+    if (parts.length > 2) {
+      return parts[0]
+    }
   }
 
-  // For localhost or IP addresses, return null
+  // For localhost or IP addresses without subdomain, return null
   if (hostWithoutPort === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(hostWithoutPort)) {
     return null
   }

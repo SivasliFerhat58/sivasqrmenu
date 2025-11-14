@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,20 +24,32 @@ export async function GET(request: NextRequest) {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
-    // Daily views for the last N days
-    const dailyViews = await prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*)::bigint as count
-      FROM page_views
-      WHERE restaurant_id = ${restaurant.id}
-        AND created_at >= ${startDate}
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `
+    // Daily views for the last N days - using Prisma query instead of raw SQL for better compatibility
+    const allViews = await prisma.pageView.findMany({
+      where: {
+        restaurantId: restaurant.id,
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    })
 
-    // Top categories (by menu items views - simplified)
-    const topCategories = await prisma.menuCategory.findMany({
+    // Group by date
+    const dailyViewsMap = new Map<string, number>()
+    allViews.forEach((view) => {
+      const date = view.createdAt.toISOString().split('T')[0]
+      dailyViewsMap.set(date, (dailyViewsMap.get(date) || 0) + 1)
+    })
+
+    const dailyViews = Array.from(dailyViewsMap.entries())
+      .map(([date, count]) => ({ date, count: Number(count) }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    // Top categories (by menu items count)
+    const allCategories = await prisma.menuCategory.findMany({
       where: {
         restaurantId: restaurant.id,
       },
@@ -47,13 +60,17 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        menuItems: {
-          _count: 'desc',
-        },
-      },
-      take: 5,
     })
+
+    // Sort by menu items count and take top 5
+    const topCategories = allCategories
+      .sort((a, b) => b.menuItems.length - a.menuItems.length)
+      .slice(0, 5)
+      .map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        itemCount: cat.menuItems.length,
+      }))
 
     // Total views
     const totalViews = await prisma.pageView.count({
@@ -79,22 +96,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        dailyViews: dailyViews.map((v) => ({
-          date: v.date,
-          count: Number(v.count),
-        })),
-        topCategories: topCategories.map((cat) => ({
-          id: cat.id,
-          name: cat.name,
-          itemCount: cat.menuItems.length,
-        })),
-        totalViews,
-        viewsToday,
+        dailyViews: dailyViews,
+        topCategories: topCategories,
+        totalViews: totalViews || 0,
+        viewsToday: viewsToday || 0,
       },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error fetching analytics:', error)
+    logger.error('Error fetching analytics:', error)
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

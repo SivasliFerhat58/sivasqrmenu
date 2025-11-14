@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { extractSubdomainFromHost } from '@/lib/subdomain'
+import { logger } from '@/lib/logger'
 
 // Routes that should not be affected by subdomain routing
 const EXCLUDED_PATHS = [
@@ -14,6 +15,16 @@ const EXCLUDED_PATHS = [
   '/admin',
 ]
 
+// Helper to check if path is a dynamic subdomain route
+function isSubdomainRoute(pathname: string): boolean {
+  // Check if pathname matches pattern like /restoran1 (single segment, no extension)
+  const parts = pathname.split('/').filter(Boolean)
+  if (parts.length === 1 && /^[a-z0-9-]+$/.test(parts[0]) && !parts[0].includes('.')) {
+    return true
+  }
+  return false
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -24,9 +35,23 @@ export async function middleware(request: NextRequest) {
 
   const host = request.headers.get('host') || ''
   const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000'
+  const isDevelopment = process.env.NODE_ENV === 'development' || baseDomain.includes('localhost')
 
-  // Extract subdomain from host
-  const subdomain = extractSubdomainFromHost(host, baseDomain)
+  let subdomain: string | null = null
+
+  // In development, support path-based routing: /restoran1
+  // In production, use subdomain routing: restoran1.example.com
+  if (isDevelopment && isSubdomainRoute(pathname)) {
+    const pathParts = pathname.split('/').filter(Boolean)
+    if (pathParts.length > 0) {
+      subdomain = pathParts[0]
+    }
+  }
+
+  // If no subdomain from path, try extracting from host header
+  if (!subdomain) {
+    subdomain = extractSubdomainFromHost(host, baseDomain)
+  }
 
   // If no subdomain, continue to main app (dashboard, auth, etc.)
   if (!subdomain) {
@@ -35,10 +60,13 @@ export async function middleware(request: NextRequest) {
 
   // Validate subdomain format
   if (!/^[a-z0-9-]+$/.test(subdomain)) {
+    logger.warn('[Middleware] Invalid subdomain format:', subdomain)
     return NextResponse.rewrite(new URL('/404', request.url))
   }
 
   try {
+    logger.debug('[Middleware] Looking for restaurant with subdomain:', subdomain)
+    
     // Find restaurant by subdomain
     const restaurant = await prisma.restaurant.findUnique({
       where: { subdomain },
@@ -54,8 +82,19 @@ export async function middleware(request: NextRequest) {
     })
 
     if (!restaurant) {
-      return NextResponse.rewrite(new URL('/404', request.url))
+      logger.warn('[Middleware] Restaurant not found for subdomain:', subdomain)
+      // In development, list all restaurants for debugging
+      if (process.env.NODE_ENV === 'development') {
+        const allRestaurants = await prisma.restaurant.findMany({
+          select: { subdomain: true, name: true },
+        })
+        logger.debug('[Middleware] Available restaurants:', allRestaurants)
+      }
+      // Let Next.js handle 404 with not-found.tsx
+      return NextResponse.next()
     }
+    
+    logger.debug('[Middleware] Restaurant found:', restaurant.name, 'subdomain:', restaurant.subdomain)
 
     if (!restaurant.isActive) {
       return NextResponse.rewrite(new URL('/inactive', request.url))
@@ -67,9 +106,19 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-restaurant-subdomain', restaurant.subdomain)
     requestHeaders.set('x-restaurant-name', restaurant.name)
 
-    // Rewrite to public menu page (you'll create this)
-    // For now, we'll add the restaurant context to headers
-    const response = NextResponse.next({
+    // Rewrite to the [subdomain] dynamic route
+    // This route will read restaurant data from headers
+    const url = request.nextUrl.clone()
+    // Keep the subdomain in path for the dynamic route
+    if (isDevelopment && pathname.startsWith(`/${subdomain}`)) {
+      // Already has subdomain in path, keep it
+      url.pathname = pathname
+    } else {
+      // Production or first time, add subdomain to path
+      url.pathname = `/${subdomain}`
+    }
+    
+    const response = NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
       },
@@ -83,7 +132,7 @@ export async function middleware(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('Middleware error:', error)
+    logger.error('Middleware error:', error)
     return NextResponse.next()
   }
 }

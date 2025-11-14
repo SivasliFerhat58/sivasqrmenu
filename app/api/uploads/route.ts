@@ -6,9 +6,11 @@ import { randomUUID } from 'crypto'
 import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 import { IMAGE_SIZES } from '@/utils/imageSizes'
-
-// TODO: Replace with S3/Cloudinary in production
-// This is a temporary local storage solution
+import { logger } from '@/lib/logger'
+import {
+  uploadToCloudinary,
+  isCloudinaryEnabled,
+} from '@/lib/cloudinary'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
@@ -55,68 +57,95 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Create restaurant-specific uploads directory: public/uploads/<restaurantId>/products/
-    const productsDir = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      restaurant.id,
-      'products'
-    )
-
-    try {
-      await mkdir(productsDir, { recursive: true })
-    } catch (error) {
-      // Directory might already exist
-    }
-
     // Generate unique filename using UUID
     const uuid = randomUUID()
     const extension = file.type === 'image/jpeg' || file.type === 'image/jpg' ? 'jpg' : 'png'
-    const filename = `${uuid}.${extension}`
+    const publicId = `${restaurant.id}/${uuid}`
 
-    // Process image with sharp
-    const image = sharp(buffer)
+    let imageUrls: Record<string, string> = {}
 
-    // Generate all image sizes
-    const imageUrls: Record<string, string> = {}
-
-    const resizePromises = Object.entries(IMAGE_SIZES).map(
-      async ([size, width]) => {
-        const sizeFilename = `${uuid}-${size}.${extension}`
-        const sizePath = join(productsDir, sizeFilename)
-
-        await image
-          .clone()
-          .resize(width, null, {
-            withoutEnlargement: true,
-            fit: 'inside',
-          })
-          .toFile(sizePath)
-
-        // Store public URL
-        imageUrls[size] = `/uploads/${restaurant.id}/products/${sizeFilename}`
+    // Use Cloudinary if configured, otherwise fall back to local storage
+    if (isCloudinaryEnabled()) {
+      try {
+        // Upload to Cloudinary
+        const folder = `restaurants/${restaurant.id}/products`
+        imageUrls = await uploadToCloudinary(buffer, folder, uuid)
+        
+        logger.debug('Image uploaded to Cloudinary:', imageUrls)
+      } catch (cloudinaryError) {
+        logger.error('Cloudinary upload failed, falling back to local storage:', cloudinaryError)
+        // Fall through to local storage
       }
-    )
+    }
 
-    // Also save original (optional - can be removed if not needed)
-    const originalPath = join(productsDir, filename)
-    await image.toFile(originalPath)
-    imageUrls.original = `/uploads/${restaurant.id}/products/${filename}`
+    // Fallback to local storage if Cloudinary is not configured or failed
+    if (!isCloudinaryEnabled() || Object.keys(imageUrls).length === 0) {
+      // Check if we're in a serverless environment (Vercel, etc.)
+      const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME
 
-    // Wait for all resizes to complete
-    await Promise.all(resizePromises)
+      if (isServerless) {
+        return NextResponse.json(
+          { error: 'File uploads require Cloudinary configuration in serverless environments' },
+          { status: 500 }
+        )
+      }
+
+      // Local storage fallback
+      const productsDir = join(
+        process.cwd(),
+        'public',
+        'uploads',
+        restaurant.id,
+        'products'
+      )
+
+      try {
+        await mkdir(productsDir, { recursive: true })
+      } catch (error) {
+        // Directory might already exist
+      }
+
+      const filename = `${uuid}.${extension}`
+      const image = sharp(buffer)
+
+      // Generate all image sizes
+      const resizePromises = Object.entries(IMAGE_SIZES).map(
+        async ([size, width]) => {
+          const sizeFilename = `${uuid}-${size}.${extension}`
+          const sizePath = join(productsDir, sizeFilename)
+
+          await image
+            .clone()
+            .resize(width, null, {
+              withoutEnlargement: true,
+              fit: 'inside',
+            })
+            .toFile(sizePath)
+
+          // Store public URL
+          imageUrls[size] = `/uploads/${restaurant.id}/products/${sizeFilename}`
+        }
+      )
+
+      // Also save original
+      const originalPath = join(productsDir, filename)
+      await image.toFile(originalPath)
+      imageUrls.original = `/uploads/${restaurant.id}/products/${filename}`
+
+      // Wait for all resizes to complete
+      await Promise.all(resizePromises)
+    }
 
     // Return all image URLs
     return NextResponse.json(
       {
-        imageUrl: imageUrls.large, // Default to large for backward compatibility
+        imageUrl: imageUrls.large || imageUrls.original, // Default to large for backward compatibility
         urls: imageUrls,
       },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Upload error:', error)
+    logger.error('Upload error:', error)
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }

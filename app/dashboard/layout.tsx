@@ -1,4 +1,5 @@
-import { requireOwner } from '@/lib/auth-guard'
+import { requireAuth } from '@/lib/auth-guard'
+import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
 
 export default async function DashboardLayout({
@@ -6,7 +7,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  await requireOwner()
+  const session = await requireAuth()
+
+  // Admin kullanıcıları admin paneline yönlendir
+  if (session.user.role === 'ADMIN') {
+    redirect('/admin')
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">

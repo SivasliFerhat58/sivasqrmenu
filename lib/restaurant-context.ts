@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { logger } from './logger'
 
 /**
  * Gets restaurant from request headers (set by middleware)
@@ -37,7 +38,7 @@ export async function getRestaurantFromHeaders() {
 
     return restaurant
   } catch (error) {
-    console.error('Error fetching restaurant:', error)
+    logger.error('Error fetching restaurant:', error)
     return null
   }
 }
@@ -67,7 +68,7 @@ export async function getRestaurantBySubdomain(subdomain: string) {
 
     return restaurant
   } catch (error) {
-    console.error('Error fetching restaurant by subdomain:', error)
+    logger.error('Error fetching restaurant by subdomain:', error)
     return null
   }
 }

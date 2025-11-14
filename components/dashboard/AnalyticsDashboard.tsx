@@ -38,13 +38,39 @@ export default function AnalyticsDashboard() {
 
   useEffect(() => {
     fetch('/api/analytics/views?days=30')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch analytics')
+        }
+        return res.json()
+      })
       .then((data) => {
-        setData(data)
+        // Validate data structure
+        if (data && typeof data === 'object') {
+          setData({
+            dailyViews: Array.isArray(data.dailyViews) ? data.dailyViews : [],
+            topCategories: Array.isArray(data.topCategories) ? data.topCategories : [],
+            totalViews: typeof data.totalViews === 'number' ? data.totalViews : 0,
+            viewsToday: typeof data.viewsToday === 'number' ? data.viewsToday : 0,
+          })
+        } else {
+          setData({
+            dailyViews: [],
+            topCategories: [],
+            totalViews: 0,
+            viewsToday: 0,
+          })
+        }
         setLoading(false)
       })
       .catch((err) => {
         console.error('Error fetching analytics:', err)
+        setData({
+          dailyViews: [],
+          topCategories: [],
+          totalViews: 0,
+          viewsToday: 0,
+        })
         setLoading(false)
       })
   }, [])
@@ -67,8 +93,8 @@ export default function AnalyticsDashboard() {
     )
   }
 
-  // Format dates for display
-  const formattedDailyViews = data.dailyViews.map((view) => ({
+  // Format dates for display - ensure dailyViews is an array
+  const formattedDailyViews = (data.dailyViews || []).map((view) => ({
     ...view,
     date: new Date(view.date).toLocaleDateString('tr-TR', {
       month: 'short',
@@ -126,7 +152,7 @@ export default function AnalyticsDashboard() {
           <CardDescription>Top 5 kategori</CardDescription>
         </CardHeader>
         <CardContent>
-          {data.topCategories.length === 0 ? (
+          {!data.topCategories || data.topCategories.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Henüz kategori yok</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>

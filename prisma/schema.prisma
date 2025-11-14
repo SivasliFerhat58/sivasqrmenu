@@ -37,7 +37,6 @@ model Restaurant {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   menuCategories MenuCategory[]
-  menuItems     MenuItem[]
   subscriptions Subscription[]
   audits        Audit[]
   pageViews     PageView[]

@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { Edit, Trash2, Search, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -102,10 +101,10 @@ export default function MenuItemsList({
             className="pl-10"
           />
         </div>
-        <Select
+        <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="w-full sm:w-48"
+          className="flex h-10 w-full sm:w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="all">Tüm Kategoriler</option>
           {categories.map((category) => (
@@ -113,7 +112,7 @@ export default function MenuItemsList({
               {category.name}
             </option>
           ))}
-        </Select>
+        </select>
       </div>
 
       {/* Table */}
@@ -169,6 +168,7 @@ export default function MenuItemsList({
                   </TableCell>
                   <TableCell>
                     <Switch
+                      type="checkbox"
                       checked={item.isAvailable}
                       onChange={() =>
                         handleToggleAvailability(item.id, item.isAvailable)

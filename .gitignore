@@ -27,9 +27,16 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.example
 
 # vercel
 .vercel
+
+# uploads (local storage - not needed in git)
+/public/uploads
+
+# scripts (optional - can be committed if needed)
+/scripts/*.js
 
 # typescript
 *.tsbuildinfo

@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { headers } from 'next/headers'
+import { logger } from './logger'
 
 export async function trackPageView(
   restaurantId: string,
@@ -17,7 +18,7 @@ export async function trackPageView(
       },
     })
   } catch (error) {
-    console.error('Error tracking page view:', error)
+    logger.error('Error tracking page view:', error)
     // Don't throw - analytics shouldn't break the page
   }
 }
