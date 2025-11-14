@@ -9,12 +9,14 @@ import {
   Package,
   CreditCard,
   Settings,
+  QrCode,
 } from 'lucide-react'
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/menu-categories', label: 'Kategoriler', icon: FolderTree },
   { href: '/dashboard/menu-items', label: 'Ürünler', icon: Package },
+  { href: '/dashboard/qr', label: 'QR Menüsü', icon: QrCode },
   { href: '/dashboard/subscription', label: 'Abonelik', icon: CreditCard },
   { href: '/dashboard/settings', label: 'Ayarlar', icon: Settings },
 ]
