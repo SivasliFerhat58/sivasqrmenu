@@ -84,6 +84,67 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await requireOwner()
+
+    const body = await request.json()
+    const { isAvailable } = body
+
+    if (typeof isAvailable !== 'boolean') {
+      return NextResponse.json(
+        { error: 'isAvailable must be a boolean' },
+        { status: 400 }
+      )
+    }
+
+    const restaurant = await prisma.restaurant.findFirst({
+      where: { ownerId: session.user.id },
+    })
+
+    if (!restaurant) {
+      return NextResponse.json(
+        { error: 'Restaurant not found' },
+        { status: 404 }
+      )
+    }
+
+    const item = await prisma.menuItem.findFirst({
+      where: {
+        id: params.id,
+        category: {
+          restaurantId: restaurant.id,
+        },
+      },
+    })
+
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Menu item not found' },
+        { status: 404 }
+      )
+    }
+
+    const updatedItem = await prisma.menuItem.update({
+      where: { id: params.id },
+      data: {
+        isAvailable,
+      },
+    })
+
+    return NextResponse.json({ item: updatedItem }, { status: 200 })
+  } catch (error) {
+    console.error('Error updating menu item availability:', error)
+    return NextResponse.json(
+      { error: 'Failed to update menu item availability' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -131,4 +192,3 @@ export async function DELETE(
     )
   }
 }
-

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface DeleteMenuItemButtonProps {
   itemId: string
@@ -37,13 +38,15 @@ export default function DeleteMenuItemButton({ itemId }: DeleteMenuItemButtonPro
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={handleDelete}
       disabled={isDeleting}
-      className="text-red-600 hover:text-red-900 disabled:opacity-50"
+      className="text-red-600 hover:text-red-900"
     >
-      <Trash2 className="w-5 h-5" />
-    </button>
+      <Trash2 className="w-4 h-4" />
+    </Button>
   )
 }
 

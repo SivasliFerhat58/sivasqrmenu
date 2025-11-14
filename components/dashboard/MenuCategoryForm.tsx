@@ -6,6 +6,10 @@ import { menuCategorySchema, type MenuCategoryFormData } from '@/lib/validations
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { MenuCategory } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface MenuCategoryFormProps {
   category?: MenuCategory
@@ -65,64 +69,56 @@ export default function MenuCategoryForm({ category }: MenuCategoryFormProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle>{category ? 'Kategori Düzenle' : 'Yeni Kategori'}</CardTitle>
+        <CardDescription>
+          {category ? 'Kategori bilgilerini güncelleyin' : 'Yeni bir kategori oluşturun'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="name">Kategori Adı *</Label>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder="Örn: Ana Yemekler"
+            />
+            {errors.name && (
+              <p className="text-sm text-red-600">{errors.name.message}</p>
+            )}
           </div>
-        )}
 
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Kategori Adı *
-          </label>
-          <input
-            type="text"
-            id="name"
-            {...register('name')}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Örn: Ana Yemekler"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-          )}
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="order">Sıra</Label>
+            <Input
+              id="order"
+              type="number"
+              {...register('order', { valueAsNumber: true })}
+              min="0"
+            />
+            {errors.order && (
+              <p className="text-sm text-red-600">{errors.order.message}</p>
+            )}
+          </div>
 
-        <div>
-          <label htmlFor="order" className="block text-sm font-medium text-gray-700 mb-2">
-            Sıra
-          </label>
-          <input
-            type="number"
-            id="order"
-            {...register('order', { valueAsNumber: true })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-          {errors.order && (
-            <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
-          )}
-        </div>
-
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Kaydediliyor...' : category ? 'Güncelle' : 'Oluştur'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300"
-          >
-            İptal
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="flex gap-4">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Kaydediliyor...' : category ? 'Güncelle' : 'Oluştur'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => router.back()}>
+              İptal
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
-

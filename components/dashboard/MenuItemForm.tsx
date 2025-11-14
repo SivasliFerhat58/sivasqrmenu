@@ -6,7 +6,12 @@ import { menuItemSchema, type MenuItemFormData } from '@/lib/validations'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { MenuItem, MenuCategory } from '@prisma/client'
-import ImageUpload from './ImageUpload'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import ImageUploader from '@/components/ui/ImageUploader'
 
 interface MenuItemFormProps {
   item?: MenuItem & { category: MenuCategory }
@@ -31,7 +36,6 @@ export default function MenuItemForm({ item }: MenuItemFormProps) {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemSchema),
@@ -85,128 +89,114 @@ export default function MenuItemForm({ item }: MenuItemFormProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Ürün Adı *
-          </label>
-          <input
-            type="text"
-            id="name"
-            {...register('name')}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Örn: Döner Tabağı"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle>{item ? 'Ürün Düzenle' : 'Yeni Ürün'}</CardTitle>
+        <CardDescription>
+          {item ? 'Ürün bilgilerini güncelleyin' : 'Yeni bir ürün oluşturun'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+              {error}
+            </div>
           )}
-        </div>
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Açıklama
-          </label>
-          <textarea
-            id="description"
-            {...register('description')}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ürün açıklaması..."
-          />
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-              Fiyat (₺) *
-            </label>
-            <input
-              type="number"
-              id="price"
-              step="0.01"
-              min="0"
-              {...register('price')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
+          <div className="space-y-2">
+            <Label htmlFor="name">Ürün Adı *</Label>
+            <Input
+              id="name"
+              {...register('name')}
+              placeholder="Örn: Döner Tabağı"
             />
-            {errors.price && (
-              <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+            {errors.name && (
+              <p className="text-sm text-red-600">{errors.name.message}</p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
-              Kategori *
-            </label>
-            <select
-              id="categoryId"
-              {...register('categoryId')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Kategori seçiniz</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {errors.categoryId && (
-              <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+          <div className="space-y-2">
+            <Label htmlFor="description">Açıklama</Label>
+            <textarea
+              id="description"
+              {...register('description')}
+              rows={3}
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Ürün açıklaması..."
+            />
+            {errors.description && (
+              <p className="text-sm text-red-600">{errors.description.message}</p>
             )}
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Ürün Görseli
-          </label>
-          <ImageUpload
-            value={imageUrl}
-            onChange={setImageUrl}
-            error={errors.imageUrl?.message}
-          />
-          <input type="hidden" {...register('imageUrl')} />
-        </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Fiyat (₺) *</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('price')}
+                placeholder="0.00"
+              />
+              {errors.price && (
+                <p className="text-sm text-red-600">{errors.price.message}</p>
+              )}
+            </div>
 
-        <div>
-          <label className="flex items-center">
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">Kategori *</Label>
+              <Select
+                id="categoryId"
+                {...register('categoryId')}
+              >
+                <option value="">Kategori seçiniz</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+              {errors.categoryId && (
+                <p className="text-sm text-red-600">{errors.categoryId.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Ürün Görseli</Label>
+            <ImageUploader
+              value={imageUrl}
+              onChange={setImageUrl}
+              error={errors.imageUrl?.message}
+            />
+            <input type="hidden" {...register('imageUrl')} />
+          </div>
+
+          <div className="flex items-center space-x-2">
             <input
               type="checkbox"
+              id="isAvailable"
               {...register('isAvailable')}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
-            <span className="ml-2 text-sm text-gray-700">Ürün mevcut</span>
-          </label>
-        </div>
+            <Label htmlFor="isAvailable" className="!mt-0 cursor-pointer">
+              Ürün mevcut
+            </Label>
+          </div>
 
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Kaydediliyor...' : item ? 'Güncelle' : 'Oluştur'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300"
-          >
-            İptal
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="flex gap-4">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Kaydediliyor...' : item ? 'Güncelle' : 'Oluştur'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => router.back()}>
+              İptal
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
-
