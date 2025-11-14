@@ -40,6 +40,7 @@ model Restaurant {
   menuItems     MenuItem[]
   subscriptions Subscription[]
   audits        Audit[]
+  pageViews     PageView[]
 
   @@index([subdomain])
   @@map("restaurants")
@@ -92,6 +93,20 @@ model Audit {
   createdAt    DateTime   @default(now())
 
   @@map("audits")
+}
+
+model PageView {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  path         String
+  userAgent    String?
+  referer      String?
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId])
+  @@index([createdAt])
+  @@map("page_views")
 }
 
 enum UserRole {

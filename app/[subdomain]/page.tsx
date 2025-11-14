@@ -1,6 +1,7 @@
 import { getRestaurantFromHeaders } from '@/lib/restaurant-context'
 import { notFound } from 'next/navigation'
 import MenuCategory from '@/components/MenuCategory'
+import { getPageViewsFromHeaders } from '@/lib/analytics'
 
 /**
  * Public menu page for subdomain
@@ -16,6 +17,9 @@ export default async function SubdomainPage() {
   if (!restaurant) {
     notFound()
   }
+
+  // Track page view (non-blocking)
+  getPageViewsFromHeaders(restaurant.id, '/').catch(console.error)
 
   return (
     <div className="min-h-screen bg-gray-50">

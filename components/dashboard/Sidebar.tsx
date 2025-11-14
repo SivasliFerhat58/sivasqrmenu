@@ -10,6 +10,7 @@ import {
   CreditCard,
   Settings,
   QrCode,
+  BarChart3,
 } from 'lucide-react'
 
 const menuItems = [
@@ -17,6 +18,7 @@ const menuItems = [
   { href: '/dashboard/menu-categories', label: 'Kategoriler', icon: FolderTree },
   { href: '/dashboard/menu-items', label: 'Ürünler', icon: Package },
   { href: '/dashboard/qr', label: 'QR Menüsü', icon: QrCode },
+  { href: '/dashboard/analytics', label: 'İstatistikler', icon: BarChart3 },
   { href: '/dashboard/subscription', label: 'Abonelik', icon: CreditCard },
   { href: '/dashboard/settings', label: 'Ayarlar', icon: Settings },
 ]
