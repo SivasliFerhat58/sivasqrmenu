@@ -71,7 +71,9 @@ export default function ImageUpload({ value, onChange, error }: ImageUploadProps
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText)
-          onChange(response.imageUrl)
+          // Use imageUrl (large) for backward compatibility, or urls.large
+          const imageUrl = response.imageUrl || response.urls?.large
+          onChange(imageUrl)
           setUploadProgress(100)
         } else {
           const error = JSON.parse(xhr.responseText)

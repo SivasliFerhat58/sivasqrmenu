@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import sharp from 'sharp'
+import { randomUUID } from 'crypto'
 import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
+import { IMAGE_SIZES } from '@/utils/imageSizes'
 
 // TODO: Replace with S3/Cloudinary in production
 // This is a temporary local storage solution
 
-const THUMBNAIL_SIZES = {
-  small: 150,
-  medium: 400,
-  large: 800,
-}
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png']
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,8 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type - only JPG and PNG
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG and PNG are allowed.' },
         { status: 400 }
@@ -47,8 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: 'File size exceeds 5MB limit.' },
         { status: 400 }
@@ -58,60 +55,66 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Create restaurant-specific uploads directory
-    const restaurantUploadsDir = join(
+    // Create restaurant-specific uploads directory: public/uploads/<restaurantId>/products/
+    const productsDir = join(
       process.cwd(),
       'public',
       'uploads',
-      restaurant.id
+      restaurant.id,
+      'products'
     )
 
     try {
-      await mkdir(restaurantUploadsDir, { recursive: true })
+      await mkdir(productsDir, { recursive: true })
     } catch (error) {
       // Directory might already exist
     }
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const randomString = Math.random().toString(36).substring(2, 15)
+    // Generate unique filename using UUID
+    const uuid = randomUUID()
     const extension = file.type === 'image/jpeg' || file.type === 'image/jpg' ? 'jpg' : 'png'
-    const baseFilename = `${timestamp}-${randomString}`
-    const filename = `${baseFilename}.${extension}`
+    const filename = `${uuid}.${extension}`
 
     // Process image with sharp
     const image = sharp(buffer)
 
-    // Get image metadata
-    const metadata = await image.metadata()
+    // Generate all image sizes
+    const imageUrls: Record<string, string> = {}
 
-    // Save original image
-    const originalPath = join(restaurantUploadsDir, filename)
-    await image.toFile(originalPath)
-
-    // Generate thumbnails
-    const thumbnailPromises = Object.entries(THUMBNAIL_SIZES).map(
+    const resizePromises = Object.entries(IMAGE_SIZES).map(
       async ([size, width]) => {
-        const thumbnailFilename = `${baseFilename}-${size}.${extension}`
-        const thumbnailPath = join(restaurantUploadsDir, thumbnailFilename)
+        const sizeFilename = `${uuid}-${size}.${extension}`
+        const sizePath = join(productsDir, sizeFilename)
 
         await image
+          .clone()
           .resize(width, null, {
             withoutEnlargement: true,
             fit: 'inside',
           })
-          .toFile(thumbnailPath)
+          .toFile(sizePath)
 
-        return { size, filename: thumbnailFilename }
+        // Store public URL
+        imageUrls[size] = `/uploads/${restaurant.id}/products/${sizeFilename}`
       }
     )
 
-    await Promise.all(thumbnailPromises)
+    // Also save original (optional - can be removed if not needed)
+    const originalPath = join(productsDir, filename)
+    await image.toFile(originalPath)
+    imageUrls.original = `/uploads/${restaurant.id}/products/${filename}`
 
-    // Return public URL (original image)
-    const imageUrl = `/uploads/${restaurant.id}/${filename}`
+    // Wait for all resizes to complete
+    await Promise.all(resizePromises)
 
-    return NextResponse.json({ imageUrl }, { status: 200 })
+    // Return all image URLs
+    return NextResponse.json(
+      {
+        imageUrl: imageUrls.large, // Default to large for backward compatibility
+        urls: imageUrls,
+      },
+      { status: 200 }
+    )
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
