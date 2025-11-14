@@ -3,7 +3,7 @@ import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 import { validateSubdomain, normalizeSubdomain } from '@/lib/subdomain'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-config'
 
 // TODO: Implement email verification for subdomain changes
 // This is a placeholder - in production, you should:
