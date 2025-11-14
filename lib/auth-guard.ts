@@ -22,3 +22,13 @@ export async function requireOwner() {
   return session
 }
 
+export async function requireAdmin() {
+  const session = await requireAuth()
+
+  if (session.user.role !== 'ADMIN') {
+    redirect('/')
+  }
+
+  return session
+}
+

@@ -12,7 +12,16 @@ import { validateSubdomain, normalizeSubdomain } from '@/lib/subdomain'
 // Consider using: next-rate-limit, upstash/ratelimit, or similar
 // Example: limit to 5 requests per 15 minutes per IP
 
+// Registration is disabled - only admins can create users
 export async function POST(request: NextRequest) {
+  return NextResponse.json(
+    { error: 'Registration is disabled. Please contact an administrator.' },
+    { status: 403 }
+  )
+}
+
+// Legacy code kept for reference - registration disabled
+export async function POST_DISABLED(request: NextRequest) {
   try {
     const body = await request.json()
     const { email, password, name, restaurantName, subdomain } = body
