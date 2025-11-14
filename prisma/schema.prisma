@@ -11,73 +11,90 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  name          String?
-  email         String    @unique
-  passwordHash  String
-  role          UserRole  @default(CUSTOMER)
-  restaurantId  String?
-  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id])
+  id           String       @id @default(cuid())
+  name         String?
+  email        String       @unique
+  passwordHash String
+  role         UserRole     @default(OWNER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  restaurants  Restaurant[]
 
   @@map("users")
 }
 
 model Restaurant {
-  id            String      @id @default(cuid())
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id            String         @id @default(cuid())
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name          String
+  subdomain     String         @unique
   description   String?
   address       String?
   phone         String?
-  email         String?
-  logo          String?
-  theme         String?
-  ownerId       String      @unique
-  owner         User        @relation(fields: [ownerId], references: [id])
+  logoUrl       String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  menuCategories MenuCategory[]
   menuItems     MenuItem[]
   subscriptions Subscription[]
+  audits        Audit[]
 
+  @@index([subdomain])
   @@map("restaurants")
 }
 
+model MenuCategory {
+  id         String     @id @default(cuid())
+  restaurantId String
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name       String
+  order      Int        @default(0)
+  menuItems MenuItem[]
+
+  @@map("menu_categories")
+}
+
 model MenuItem {
-  id            String      @id @default(cuid())
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  name          String
-  description   String?
-  price         Float
-  image         String?
-  category      String?
-  isAvailable   Boolean     @default(true)
-  restaurantId  String
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  id          String        @id @default(cuid())
+  categoryId  String
+  category    MenuCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Decimal       @db.Decimal(10, 2)
+  imageUrl    String?
+  isAvailable Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@map("menu_items")
 }
 
 model Subscription {
-  id            String      @id @default(cuid())
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  restaurantId  String      @unique
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  plan          String      // e.g., "basic", "premium", "enterprise"
-  status        String      // e.g., "active", "cancelled", "expired"
-  stripeCustomerId String?
+  id                  String     @id @default(cuid())
+  restaurantId        String     @unique
+  restaurant          Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  plan                String     // e.g., "basic", "premium", "enterprise"
   stripeSubscriptionId String?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
+  status              String     // e.g., "active", "cancelled", "expired"
+  currentPeriodEnd    DateTime?
 
   @@map("subscriptions")
 }
 
-enum UserRole {
-  CUSTOMER
-  RESTAURANT_OWNER
-  ADMIN
+model Audit {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  action       String
+  payload      Json
+  createdAt    DateTime   @default(now())
+
+  @@map("audits")
 }
 
+enum UserRole {
+  ADMIN
+  OWNER
+}

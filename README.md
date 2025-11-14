@@ -36,12 +36,19 @@ Gerekli ortam değişkenleri:
 ### 3. Veritabanı migrasyonlarını çalıştır
 
 ```bash
-pnpm prisma migrate dev
+pnpm prisma migrate dev --name init
+```
+
+veya
+
+```bash
+npx prisma migrate dev --name init
 ```
 
 Bu komut:
 - Prisma Client'ı generate eder
 - Veritabanı migrasyonlarını oluşturur ve uygular
+- İlk migrasyon olarak "init" adıyla oluşturur
 
 ### 4. Geliştirme sunucusunu başlat
 
@@ -69,8 +76,26 @@ QrMenu/
 
 ## Veritabanı Modelleri
 
-- **User**: Kullanıcılar (müşteri, restoran sahibi, admin)
-- **Restaurant**: Restoranlar
-- **MenuItem**: Menü öğeleri
-- **Subscription**: Abonelikler
+- **User**: Kullanıcılar (id, name, email, passwordHash, role: ADMIN/OWNER, createdAt, updatedAt)
+- **Restaurant**: Restoranlar (id, ownerId, name, subdomain [unique], description, address, phone, logoUrl, isActive, createdAt, updatedAt)
+- **MenuCategory**: Menü kategorileri (id, restaurantId, name, order)
+- **MenuItem**: Menü öğeleri (id, categoryId, name, description, price [Decimal], imageUrl, isAvailable, createdAt, updatedAt)
+- **Subscription**: Abonelikler (id, restaurantId, plan, stripeSubscriptionId, status, currentPeriodEnd)
+- **Audit**: Denetim kayıtları (id, restaurantId, action, payload [JSON], createdAt)
+
+## İlk Migrasyon
+
+İlk veritabanı migrasyonunu oluşturmak için:
+
+```bash
+pnpm prisma migrate dev --name init
+```
+
+veya
+
+```bash
+npx prisma migrate dev --name init
+```
+
+**Not**: Bu komutu çalıştırmadan önce `.env` dosyasında `DATABASE_URL` değişkeninin doğru şekilde ayarlandığından emin olun.
 
