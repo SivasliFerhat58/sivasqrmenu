@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  name          String?
+  email         String    @unique
+  passwordHash  String
+  role          UserRole  @default(CUSTOMER)
+  restaurantId  String?
+  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id])
+
+  @@map("users")
+}
+
+model Restaurant {
+  id            String      @id @default(cuid())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  name          String
+  description   String?
+  address       String?
+  phone         String?
+  email         String?
+  logo          String?
+  theme         String?
+  ownerId       String      @unique
+  owner         User        @relation(fields: [ownerId], references: [id])
+  menuItems     MenuItem[]
+  subscriptions Subscription[]
+
+  @@map("restaurants")
+}
+
+model MenuItem {
+  id            String      @id @default(cuid())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  name          String
+  description   String?
+  price         Float
+  image         String?
+  category      String?
+  isAvailable   Boolean     @default(true)
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("menu_items")
+}
+
+model Subscription {
+  id            String      @id @default(cuid())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  restaurantId  String      @unique
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  plan          String      // e.g., "basic", "premium", "enterprise"
+  status        String      // e.g., "active", "cancelled", "expired"
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+
+  @@map("subscriptions")
+}
+
+enum UserRole {
+  CUSTOMER
+  RESTAURANT_OWNER
+  ADMIN
+}
+
