@@ -31,8 +31,9 @@ Gerekli ortam değişkenleri:
 - `DATABASE_URL`: PostgreSQL veritabanı bağlantı URL'i
 - `NEXTAUTH_SECRET`: NextAuth için gizli anahtar
 - `NEXTAUTH_URL`: Uygulamanın URL'i (örn: http://localhost:3000)
-- `STRIPE_SECRET_KEY`: Stripe gizli anahtarı
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook gizli anahtarı
+- `BASE_DOMAIN`: Ana domain (örn: example.com veya localhost:3000)
+- `STRIPE_SECRET_KEY`: Stripe gizli anahtarı (opsiyonel)
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook gizli anahtarı (opsiyonel)
 
 ### 3. Veritabanı migrasyonlarını çalıştır
 
@@ -239,6 +240,189 @@ session.user = {
   name?: string | null
   role: 'ADMIN' | 'OWNER'
   restaurantId?: string | null
+}
+```
+
+## Subdomain Fonksiyonelliği
+
+Uygulama, her restoran için özel subdomain desteği sağlar. Örneğin: `myrestaurant.example.com`
+
+### DNS Yapılandırması
+
+Subdomain fonksiyonelliğinin çalışması için DNS tarafında **wildcard** kayıt oluşturmanız gerekir:
+
+#### Wildcard CNAME Kaydı (Önerilen)
+
+```
+Type: CNAME
+Name: *
+Value: your-hosting-provider.com
+TTL: 3600 (veya önerilen değer)
+```
+
+**Örnek:**
+- Domain: `example.com`
+- Wildcard CNAME: `*.example.com` → `your-app.vercel.app` (veya hosting sağlayıcınız)
+
+#### Wildcard A Kaydı (Alternatif)
+
+Eğer CNAME kullanamıyorsanız, IP adresine direkt yönlendirme:
+
+```
+Type: A
+Name: *
+Value: YOUR_SERVER_IP
+TTL: 3600
+```
+
+**Not:** CNAME kaydı genellikle daha esnektir ve önerilir.
+
+### Subdomain Validasyonu
+
+Subdomain'ler şu kurallara uymalıdır:
+- **Format:** Sadece küçük harf, rakam ve tire (`-`) içerebilir
+- **Regex:** `^[a-z0-9-]+$`
+- **Uzunluk:** Minimum 3, maksimum 63 karakter
+- **Başlangıç/Bitiş:** Tire ile başlayıp bitemez
+- **Rezerve edilmiş:** `www`, `api`, `admin`, `dashboard`, `app`, `mail`, `ftp`, `localhost`, `test`, `staging`, `dev` gibi subdomain'ler kullanılamaz
+
+### Subdomain Oluşturma
+
+Restoran kaydı sırasında subdomain oluşturulur:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "owner@example.com",
+    "password": "password123",
+    "name": "John Doe",
+    "restaurantName": "My Restaurant",
+    "subdomain": "myrestaurant"
+  }'
+```
+
+Subdomain otomatik olarak normalize edilir (küçük harfe çevrilir) ve validasyon yapılır.
+
+### Subdomain Değişikliği
+
+Admin panelden subdomain değiştirmek için:
+
+```bash
+curl -X PUT http://localhost:3000/api/restaurant/subdomain \
+  -H "Content-Type: application/json" \
+  -H "Cookie: next-auth.session-token=YOUR_SESSION_TOKEN" \
+  -d '{
+    "newSubdomain": "newsubdomain"
+  }'
+```
+
+**Not:** Production'da e-posta onayı gereklidir (şu an placeholder).
+
+### Middleware ve Host Resolution
+
+Next.js middleware, gelen isteklerin `Host` header'ını parse eder ve doğru restoranı bulur:
+
+```typescript
+// middleware.ts
+// Host: "myrestaurant.example.com" -> subdomain: "myrestaurant"
+// Restaurant bilgisi request headers'a eklenir:
+// x-restaurant-id, x-restaurant-subdomain, x-restaurant-name
+```
+
+Sayfalarda restaurant bilgisine erişim:
+
+```typescript
+import { getRestaurantFromHeaders } from '@/lib/restaurant-context'
+
+export default async function Page() {
+  const restaurant = await getRestaurantFromHeaders()
+  // restaurant bilgisi ile menü gösterimi
+}
+```
+
+### Deploy Notları
+
+#### Vercel
+
+1. **Wildcard Domain Ekleme:**
+   - Vercel Dashboard → Project Settings → Domains
+   - `*.example.com` şeklinde wildcard domain ekleyin
+   - DNS'de wildcard CNAME kaydı oluşturun: `*.example.com` → `cname.vercel-dns.com`
+
+2. **Ortam Değişkenleri:**
+   ```env
+   BASE_DOMAIN=example.com
+   NEXTAUTH_URL=https://example.com
+   ```
+
+3. **Not:** Vercel wildcard domain'leri destekler ✅
+
+#### Cloudflare
+
+1. **DNS Ayarları:**
+   - Cloudflare Dashboard → DNS → Records
+   - Type: `CNAME`, Name: `*`, Target: `your-app.com`, Proxy: Enabled/Disabled
+
+2. **Page Rules (Opsiyonel):**
+   - Wildcard subdomain'ler için özel kurallar eklenebilir
+
+3. **Not:** Cloudflare wildcard domain'leri destekler ✅
+
+#### Netlify
+
+1. **Wildcard Domain:**
+   - Netlify Dashboard → Site Settings → Domain Management
+   - `*.example.com` şeklinde wildcard domain ekleyin
+   - DNS'de wildcard CNAME: `*.example.com` → `your-site.netlify.app`
+
+2. **Ortam Değişkenleri:**
+   ```env
+   BASE_DOMAIN=example.com
+   ```
+
+3. **Not:** Netlify wildcard domain'leri destekler ✅
+
+#### Genel Notlar
+
+- **Wildcard Destek Kontrolü:** Hosting sağlayıcınızın wildcard domain desteğini kontrol edin
+- **SSL/TLS:** Wildcard SSL sertifikası gerekebilir (Let's Encrypt wildcard sertifikaları destekler)
+- **CDN:** Cloudflare gibi CDN sağlayıcıları wildcard domain'leri destekler
+- **Localhost Geliştirme:** Localhost'ta subdomain testi için `/etc/hosts` dosyasına ekleme yapabilirsiniz:
+  ```
+  127.0.0.1 myrestaurant.localhost
+  127.0.0.1 testrestaurant.localhost
+  ```
+
+### Subdomain API Endpoints
+
+#### GET `/api/restaurant/subdomain`
+Mevcut subdomain bilgisini getirir.
+
+**Response:**
+```json
+{
+  "subdomain": "myrestaurant",
+  "fullUrl": "myrestaurant.example.com"
+}
+```
+
+#### PUT `/api/restaurant/subdomain`
+Subdomain değiştirir (e-posta onayı gerekir - production'da).
+
+**Request:**
+```json
+{
+  "newSubdomain": "newsubdomain"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Subdomain updated successfully",
+  "subdomain": "newsubdomain",
+  "warning": "Email verification not implemented - subdomain changed directly"
 }
 ```
 

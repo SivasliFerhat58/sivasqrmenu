@@ -6,6 +6,7 @@ import {
   getUserByEmail,
   createUser,
 } from '@/lib/auth'
+import { validateSubdomain, normalizeSubdomain } from '@/lib/subdomain'
 
 // TODO: Add rate limiting to prevent brute force attacks
 // Consider using: next-rate-limit, upstash/ratelimit, or similar
@@ -52,9 +53,20 @@ export async function POST(request: NextRequest) {
     // Optionally create restaurant if restaurantName and subdomain are provided
     let restaurantId = null
     if (restaurantName && subdomain) {
+      // Normalize and validate subdomain
+      const normalizedSubdomain = normalizeSubdomain(subdomain)
+      const validation = validateSubdomain(normalizedSubdomain)
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error || 'Invalid subdomain' },
+          { status: 400 }
+        )
+      }
+
       // Check if subdomain is already taken
       const existingRestaurant = await prisma.restaurant.findUnique({
-        where: { subdomain },
+        where: { subdomain: normalizedSubdomain },
       })
 
       if (existingRestaurant) {
@@ -68,7 +80,7 @@ export async function POST(request: NextRequest) {
         data: {
           ownerId: user.id,
           name: restaurantName,
-          subdomain,
+          subdomain: normalizedSubdomain,
         },
       })
 
