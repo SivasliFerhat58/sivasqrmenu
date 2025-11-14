@@ -8,8 +8,18 @@ import { getPageViewsFromHeaders } from '@/lib/analytics'
  * Example: myrestaurant.example.com -> shows menu for "myrestaurant"
  * 
  * ISR: Revalidate every 60 seconds for performance optimization
+ * Cache-Control: Public cache with 60s revalidation
  */
 export const revalidate = 60
+
+export async function generateMetadata() {
+  return {
+    robots: {
+      index: true,
+      follow: true,
+    },
+  }
+}
 
 export default async function SubdomainPage() {
   const restaurant = await getRestaurantFromHeaders()

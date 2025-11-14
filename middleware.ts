@@ -9,6 +9,9 @@ const EXCLUDED_PATHS = [
   '/_next',
   '/favicon.ico',
   '/uploads',
+  '/auth',
+  '/dashboard',
+  '/admin',
 ]
 
 export async function middleware(request: NextRequest) {

@@ -32,8 +32,6 @@ Gerekli ortam değişkenleri:
 - `NEXTAUTH_SECRET`: NextAuth için gizli anahtar
 - `NEXTAUTH_URL`: Uygulamanın URL'i (örn: http://localhost:3000)
 - `BASE_DOMAIN`: Ana domain (örn: example.com veya localhost:3000)
-- `STRIPE_SECRET_KEY`: Stripe gizli anahtarı (opsiyonel)
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook gizli anahtarı (opsiyonel)
 
 ### 3. Veritabanı migrasyonlarını çalıştır
 
@@ -103,47 +101,11 @@ npx prisma migrate dev --name init
 
 ## Authentication (NextAuth)
 
-Proje NextAuth ile email+password kimlik doğrulama kullanmaktadır.
+Proje NextAuth ile **sadece Credentials (email+password) login** kullanmaktadır.
 
-### API Endpoints
+**Önemli:** Public registration kapalıdır. Yeni kullanıcılar sadece ADMIN panelinden oluşturulabilir.
 
-#### 1. Register - `/api/auth/register`
-
-Yeni kullanıcı kaydı oluşturur (role: OWNER).
-
-**Request:**
-```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "owner@example.com",
-    "password": "password123",
-    "name": "John Doe",
-    "restaurantName": "My Restaurant",
-    "subdomain": "myrestaurant"
-  }'
-```
-
-**Response (201):**
-```json
-{
-  "message": "User registered successfully",
-  "user": {
-    "id": "clx...",
-    "email": "owner@example.com",
-    "name": "John Doe",
-    "role": "OWNER",
-    "restaurantId": "clx..." // null if restaurant not created
-  }
-}
-```
-
-**Notlar:**
-- `restaurantName` ve `subdomain` opsiyoneldir
-- Password minimum 8 karakter olmalıdır
-- Subdomain unique olmalıdır
-
-#### 2. Sign In - NextAuth Endpoint
+### Sign In - NextAuth Endpoint
 
 NextAuth giriş endpoint'i: `/api/auth/signin`
 
@@ -178,9 +140,9 @@ DATABASE_URL="postgresql://user:password@localhost:5432/qrmenu?schema=public"
 NEXTAUTH_SECRET="your-secret-key-here-generate-with-openssl-rand-base64-32"
 NEXTAUTH_URL="http://localhost:3000"
 
-# Stripe (optional)
-STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key"
-STRIPE_WEBHOOK_SECRET="whsec_your_webhook_secret"
+# Subdomain
+BASE_DOMAIN="localhost:3000"
+# Production: BASE_DOMAIN="example.com"
 ```
 
 **NEXTAUTH_SECRET oluşturma:**
@@ -214,16 +176,12 @@ curl -X POST http://localhost:3000/api/auth/register \
   }'
 ```
 
-#### 3. Giriş Testi (NextAuth)
+### Giriş Testi
 ```bash
 # Browser'da: http://localhost:3000/api/auth/signin
-# veya curl ile:
-curl -X POST http://localhost:3000/api/auth/callback/credentials \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "email=test@example.com&password=testpass123&redirect=false&json=true"
 ```
 
-#### 4. Session Kontrolü
+### Session Kontrolü
 ```bash
 # NextAuth session endpoint
 curl http://localhost:3000/api/auth/session
