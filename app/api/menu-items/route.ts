@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 import { menuItemSchema } from '@/lib/validations'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,11 +11,15 @@ export async function GET(request: NextRequest) {
     const restaurant = await prisma.restaurant.findFirst({
       where: { ownerId: session.user.id },
       include: {
-        menuItems: {
+        menuCategories: {
           include: {
-            category: true,
+            menuItems: {
+              include: {
+                category: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
           },
-          orderBy: { createdAt: 'desc' },
         },
       },
     })
@@ -23,9 +28,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ items: [] }, { status: 200 })
     }
 
-    return NextResponse.json({ items: restaurant.menuItems }, { status: 200 })
+    // Flatten menuItems from all categories
+    const menuItems = restaurant.menuCategories.flatMap((category) =>
+      category.menuItems.map((item) => ({
+        ...item,
+        category: {
+          id: category.id,
+          name: category.name,
+        },
+      }))
+    )
+
+    return NextResponse.json({ items: menuItems }, { status: 200 })
   } catch (error) {
-    console.error('Error fetching menu items:', error)
+    logger.error('Error fetching menu items:', error)
     return NextResponse.json(
       { error: 'Failed to fetch menu items' },
       { status: 500 }
@@ -85,7 +101,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    console.error('Error creating menu item:', error)
+    logger.error('Error creating menu item:', error)
     return NextResponse.json(
       { error: 'Failed to create menu item' },
       { status: 500 }
