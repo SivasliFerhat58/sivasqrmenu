@@ -6,7 +6,7 @@ import { menuItemSchema, type MenuItemFormData } from '@/lib/validations'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { MenuItem, MenuCategory } from '@prisma/client'
-import Image from 'next/image'
+import ImageUpload from './ImageUpload'
 
 interface MenuItemFormProps {
   item?: MenuItem & { category: MenuCategory }
@@ -17,7 +17,6 @@ export default function MenuItemForm({ item }: MenuItemFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<MenuCategory[]>([])
-  const [uploadingImage, setUploadingImage] = useState(false)
   const [imageUrl, setImageUrl] = useState(item?.imageUrl || '')
 
   useEffect(() => {
@@ -50,33 +49,10 @@ export default function MenuItemForm({ item }: MenuItemFormProps) {
         },
   })
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploadingImage(true)
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      const response = await fetch('/api/uploads', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      const data = await response.json()
-      setImageUrl(data.url)
-      setValue('imageUrl', data.url)
-    } catch (err) {
-      setError('Görsel yükleme başarısız')
-    } finally {
-      setUploadingImage(false)
-    }
-  }
+  // Sync imageUrl with form
+  useEffect(() => {
+    setValue('imageUrl', imageUrl)
+  }, [imageUrl, setValue])
 
   const onSubmit = async (data: MenuItemFormData) => {
     setIsSubmitting(true)
@@ -194,32 +170,12 @@ export default function MenuItemForm({ item }: MenuItemFormProps) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Ürün Görseli
           </label>
-          <div className="space-y-4">
-            {imageUrl && (
-              <div className="relative w-32 h-32 border border-gray-300 rounded-lg overflow-hidden">
-                <Image
-                  src={imageUrl}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleImageUpload}
-              disabled={uploadingImage}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
-            />
-            {uploadingImage && (
-              <p className="text-sm text-gray-500">Yükleniyor...</p>
-            )}
-            <input type="hidden" {...register('imageUrl')} />
-          </div>
-          {errors.imageUrl && (
-            <p className="mt-1 text-sm text-red-600">{errors.imageUrl.message}</p>
-          )}
+          <ImageUpload
+            value={imageUrl}
+            onChange={setImageUrl}
+            error={errors.imageUrl?.message}
+          />
+          <input type="hidden" {...register('imageUrl')} />
         </div>
 
         <div>
