@@ -27,6 +27,14 @@ export async function getRestaurantFromHeaders() {
               orderBy: {
                 createdAt: 'desc',
               },
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                imageUrl: true,
+                isAvailable: true,
+              },
             },
           },
           orderBy: {
@@ -35,6 +43,20 @@ export async function getRestaurantFromHeaders() {
         },
       },
     })
+
+    // Convert Decimal price to number for type compatibility
+    if (restaurant) {
+      return {
+        ...restaurant,
+        menuCategories: restaurant.menuCategories.map((category) => ({
+          ...category,
+          menuItems: category.menuItems.map((item) => ({
+            ...item,
+            price: Number(item.price),
+          })),
+        })),
+      }
+    }
 
     return restaurant
   } catch (error) {
@@ -57,6 +79,14 @@ export async function getRestaurantBySubdomain(subdomain: string) {
               where: {
                 isAvailable: true,
               },
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                imageUrl: true,
+                isAvailable: true,
+              },
             },
           },
           orderBy: {
@@ -65,6 +95,20 @@ export async function getRestaurantBySubdomain(subdomain: string) {
         },
       },
     })
+
+    // Convert Decimal price to number for type compatibility
+    if (restaurant) {
+      return {
+        ...restaurant,
+        menuCategories: restaurant.menuCategories.map((category) => ({
+          ...category,
+          menuItems: category.menuItems.map((item) => ({
+            ...item,
+            price: Number(item.price),
+          })),
+        })),
+      }
+    }
 
     return restaurant
   } catch (error) {
