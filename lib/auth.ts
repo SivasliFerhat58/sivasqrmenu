@@ -20,8 +20,11 @@ export async function validatePassword(password: string): Promise<boolean> {
 }
 
 export async function getUserByEmail(email: string) {
+  // Normalize email to lowercase for case-insensitive lookup
+  const normalizedEmail = email.toLowerCase().trim()
+  
   return prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizedEmail },
     include: {
       restaurants: {
         select: {

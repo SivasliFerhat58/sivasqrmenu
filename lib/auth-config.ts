@@ -11,25 +11,37 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error('Email and password are required')
-          }
+        if (!credentials?.email || !credentials?.password) {
+          console.error('[NextAuth] Missing credentials')
+          return null
+        }
 
-          const user = await getUserByEmail(credentials.email)
+        try {
+          const email = credentials.email.toLowerCase().trim()
+          console.log('[NextAuth] Attempting login for:', email)
+          
+          // Get user from database
+          const user = await getUserByEmail(email)
 
           if (!user) {
-            throw new Error('Invalid email or password')
+            console.error('[NextAuth] User not found:', email)
+            return null
           }
 
+          console.log('[NextAuth] User found:', user.email, 'Role:', user.role)
+
+          // Verify password
           const isValid = await verifyPassword(
             credentials.password,
             user.passwordHash
           )
 
           if (!isValid) {
-            throw new Error('Invalid email or password')
+            console.error('[NextAuth] Password verification failed for:', email)
+            return null
           }
+
+          console.log('[NextAuth] Password verified successfully for:', email)
 
           // Get the first restaurant ID if user is an owner
           const restaurantId =
@@ -46,7 +58,9 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error)
-          throw error
+          console.error('[NextAuth] Error stack:', error instanceof Error ? error.stack : 'No stack')
+          // Return null to indicate authentication failure
+          return null
         }
       },
     }),
@@ -75,6 +89,18 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
