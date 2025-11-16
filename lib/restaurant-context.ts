@@ -4,19 +4,19 @@ import { logger } from './logger'
 
 /**
  * Gets restaurant from request headers (set by middleware)
+ * Middleware sets x-subdomain header, and we do the database lookup here
  */
 export async function getRestaurantFromHeaders() {
   const headersList = await headers()
-  const restaurantId = headersList.get('x-restaurant-id')
-  const subdomain = headersList.get('x-restaurant-subdomain')
+  const subdomain = headersList.get('x-subdomain') || headersList.get('x-restaurant-subdomain')
 
-  if (!restaurantId && !subdomain) {
+  if (!subdomain) {
     return null
   }
 
   try {
     const restaurant = await prisma.restaurant.findUnique({
-      where: restaurantId ? { id: restaurantId } : { subdomain: subdomain! },
+      where: { subdomain },
       include: {
         menuCategories: {
           include: {

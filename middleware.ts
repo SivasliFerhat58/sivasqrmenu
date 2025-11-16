@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { extractSubdomainFromHost } from '@/lib/subdomain'
-import { logger } from '@/lib/logger'
 
 // Routes that should not be affected by subdomain routing
 const EXCLUDED_PATHS = [
@@ -60,81 +58,33 @@ export async function middleware(request: NextRequest) {
 
   // Validate subdomain format
   if (!/^[a-z0-9-]+$/.test(subdomain)) {
-    logger.warn('[Middleware] Invalid subdomain format:', subdomain)
     return NextResponse.rewrite(new URL('/404', request.url))
   }
 
-  try {
-    logger.debug('[Middleware] Looking for restaurant with subdomain:', subdomain)
-    
-    // Find restaurant by subdomain
-    const restaurant = await prisma.restaurant.findUnique({
-      where: { subdomain },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-    })
+  // Add subdomain to request headers for use in pages
+  // Database lookup will be done in the page component (not in Edge Runtime)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-subdomain', subdomain)
 
-    if (!restaurant) {
-      logger.warn('[Middleware] Restaurant not found for subdomain:', subdomain)
-      // In development, list all restaurants for debugging
-      if (process.env.NODE_ENV === 'development') {
-        const allRestaurants = await prisma.restaurant.findMany({
-          select: { subdomain: true, name: true },
-        })
-        logger.debug('[Middleware] Available restaurants:', allRestaurants)
-      }
-      // Let Next.js handle 404 with not-found.tsx
-      return NextResponse.next()
-    }
-    
-    logger.debug('[Middleware] Restaurant found:', restaurant.name, 'subdomain:', restaurant.subdomain)
-
-    if (!restaurant.isActive) {
-      return NextResponse.rewrite(new URL('/inactive', request.url))
-    }
-
-    // Add restaurant data to request headers for use in pages
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-restaurant-id', restaurant.id)
-    requestHeaders.set('x-restaurant-subdomain', restaurant.subdomain)
-    requestHeaders.set('x-restaurant-name', restaurant.name)
-
-    // Rewrite to the [subdomain] dynamic route
-    // This route will read restaurant data from headers
-    const url = request.nextUrl.clone()
-    // Keep the subdomain in path for the dynamic route
-    if (isDevelopment && pathname.startsWith(`/${subdomain}`)) {
-      // Already has subdomain in path, keep it
-      url.pathname = pathname
-    } else {
-      // Production or first time, add subdomain to path
-      url.pathname = `/${subdomain}`
-    }
-    
-    const response = NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
-    })
-
-    // Also set cookies for client-side access (optional)
-    response.cookies.set('restaurant-id', restaurant.id, {
-      path: '/',
-      sameSite: 'lax',
-    })
-
-    return response
-  } catch (error) {
-    logger.error('Middleware error:', error)
-    return NextResponse.next()
+  // Rewrite to the [subdomain] dynamic route
+  // This route will read subdomain from headers and do the database lookup
+  const url = request.nextUrl.clone()
+  // Keep the subdomain in path for the dynamic route
+  if (isDevelopment && pathname.startsWith(`/${subdomain}`)) {
+    // Already has subdomain in path, keep it
+    url.pathname = pathname
+  } else {
+    // Production or first time, add subdomain to path
+    url.pathname = `/${subdomain}`
   }
+  
+  const response = NextResponse.rewrite(url, {
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  return response
 }
 
 export const config = {
