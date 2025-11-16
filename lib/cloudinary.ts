@@ -35,8 +35,13 @@ export async function uploadToCloudinary(
 
   const imageUrls: Record<string, string> = {}
 
+  // Convert Buffer to data URI format for Cloudinary (TypeScript compatibility)
+  const bufferToDataUri = (buf: Buffer, mimeType: string = 'image/png'): string => {
+    return `data:${mimeType};base64,${buf.toString('base64')}`
+  }
+
   // Upload original image
-  const originalResult = await cloudinary.uploader.upload(buffer, {
+  const originalResult = await cloudinary.uploader.upload(bufferToDataUri(buffer), {
     folder: `${folder}/original`,
     public_id: publicId,
     resource_type: 'image',
@@ -54,7 +59,7 @@ export async function uploadToCloudinary(
       })
       .toBuffer()
 
-    const result = await cloudinary.uploader.upload(resizedBuffer, {
+    const result = await cloudinary.uploader.upload(bufferToDataUri(resizedBuffer), {
       folder: `${folder}/${size}`,
       public_id: `${publicId}-${size}`,
       resource_type: 'image',
