@@ -34,14 +34,8 @@ const nextConfig = {
       },
     ]
   },
-  // Skip build traces collection to avoid stack overflow
-  // This is a known issue with Next.js 14.0.4 and micromatch
-  // Vercel will handle dependencies automatically
-  experimental: {
-    outputFileTracingRoot: process.cwd(),
-  },
-  // Use standalone output to minimize build traces
-  output: 'standalone',
+  // Removed experimental configs - Next.js 14.2+ handles this better
+  // Using default output for better Vercel compatibility
 }
 
 module.exports = nextConfig
