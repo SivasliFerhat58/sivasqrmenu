@@ -45,6 +45,7 @@ export default async function MenuItemsPage() {
   const menuItems = restaurant.menuCategories.flatMap((category) =>
     category.menuItems.map((item) => ({
       ...item,
+      price: Number(item.price), // Convert Decimal to number for type compatibility
       category: {
         id: category.id,
         name: category.name,
