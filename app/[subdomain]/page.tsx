@@ -8,10 +8,9 @@ import { logger } from '@/lib/logger'
  * Public menu page for subdomain
  * Example: myrestaurant.example.com -> shows menu for "myrestaurant"
  * 
- * ISR: Revalidate every 60 seconds for performance optimization
- * Cache-Control: Public cache with 60s revalidation
+ * Dynamic rendering: Required for analytics tracking and subdomain-based routing
  */
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
   return {
@@ -49,10 +48,15 @@ export default async function SubdomainPage({
     notFound()
   }
 
-  // Track page view (non-blocking)
-  getPageViewsFromHeaders(restaurant.id, '/').catch((error) => {
-    logger.error('[SubdomainPage] Error tracking page view:', error)
-  })
+  // Track page view (non-blocking, wrapped in try-catch for build safety)
+  try {
+    getPageViewsFromHeaders(restaurant.id, '/').catch((error) => {
+      logger.error('[SubdomainPage] Error tracking page view:', error)
+    })
+  } catch (error) {
+    // Silently fail during build - analytics shouldn't break the page
+    logger.debug('[SubdomainPage] Analytics tracking skipped during build')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

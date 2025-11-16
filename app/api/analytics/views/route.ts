@@ -3,6 +3,9 @@ import { requireOwner } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+// Force dynamic rendering for API route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const session = await requireOwner()
