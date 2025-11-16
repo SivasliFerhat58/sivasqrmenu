@@ -19,16 +19,67 @@ Bu rehber, PostgreSQL veritabanı için `DATABASE_URL` değerini nasıl alacağ�
 5. **"Create new project"** butonuna tıklayın
 6. Proje oluşturulmasını bekleyin (1-2 dakika)
 
-### Adım 3: Database URL'i Bulun
+### Adım 3: Database URL'i Bulun (Güncel Yöntemler)
 
-1. Proje oluşturulduktan sonra, sol menüden **"Settings"** (⚙️) ikonuna tıklayın
+**Yöntem 1: Settings → Database (En Yaygın)**
+
+1. Sol menüden **"Settings"** (⚙️) ikonuna tıklayın
 2. **"Project Settings"** altında **"Database"** sekmesine tıklayın
-3. **"Connection string"** bölümüne gidin
-4. **"URI"** sekmesine tıklayın
-5. Connection string'i göreceksiniz, şu formatta olacak:
+3. Sayfayı aşağı kaydırın, şu bölümleri arayın:
+   - **"Connection string"** veya
+   - **"Connection info"** veya
+   - **"Database URL"** veya
+   - **"Connection pooling"**
+4. Eğer görünmüyorsa, **"Connection string"** yazısına tıklayın veya genişletin
+5. **"URI"** veya **"JDBC"** sekmesine tıklayın
+6. Connection string'i göreceksiniz
+
+**Yöntem 2: Connection Pooling Bölümü**
+
+1. Settings → Database
+2. Sayfayı aşağı kaydırın
+3. **"Connection pooling"** bölümünü bulun
+4. **"Connection string"** → **"URI"** sekmesine tıklayın
+5. Bu string'i kullanın (Vercel için önerilen):
    ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+   postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
+
+**Yöntem 3: Project Settings → API**
+
+1. Settings → **"API"** sekmesine gidin
+2. **"Project URL"** ve **"anon key"** göreceksiniz
+3. Database URL'i burada olmayabilir, ama **"Database"** sekmesine geri dönün
+
+**Yöntem 4: SQL Editor'dan Kontrol**
+
+1. Sol menüden **"SQL Editor"** seçeneğine tıklayın
+2. Yeni bir query oluşturun
+3. Connection bilgileri burada görünebilir
+
+**Yöntem 5: Manuel Oluşturma (Eğer Bulamazsanız)**
+
+Eğer connection string'i bulamazsanız, manuel olarak oluşturabilirsiniz:
+
+1. Settings → Database → **"Database settings"** bölümüne gidin
+2. Şu bilgileri not edin:
+   - **Host**: `db.[PROJECT-REF].supabase.co` (Settings → API'de Project URL'den alabilirsiniz)
+   - **Database name**: Genellikle `postgres`
+   - **Port**: `5432` (direct) veya `6543` (pooling)
+   - **User**: `postgres`
+   - **Password**: Proje oluştururken belirlediğiniz şifre
+
+3. Connection string formatı:
+   ```
+   postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+   ```
+
+**PROJECT-REF'i Nasıl Bulurum?**
+
+1. Settings → **"General"** sekmesine gidin
+2. **"Reference ID"** veya **"Project ID"** değerini kopyalayın
+3. Veya URL'den alın: `https://app.supabase.com/project/[PROJECT-REF]`
+   - URL'deki `[PROJECT-REF]` kısmını kopyalayın
 
 ### Adım 4: Connection String'i Hazırlayın
 
