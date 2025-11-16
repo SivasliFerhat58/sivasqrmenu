@@ -8,10 +8,11 @@ import sharp from 'sharp'
 import { IMAGE_SIZES } from '@/utils/imageSizes'
 
 // Configure Cloudinary
-const isCloudinaryConfigured =
+const isCloudinaryConfigured = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME &&
   process.env.CLOUDINARY_API_KEY &&
   process.env.CLOUDINARY_API_SECRET
+)
 
 if (isCloudinaryConfigured) {
   cloudinary.config({
@@ -78,6 +79,6 @@ export async function uploadToCloudinary(
  * Check if Cloudinary is configured
  */
 export function isCloudinaryEnabled(): boolean {
-  return isCloudinaryConfigured === true
+  return isCloudinaryConfigured
 }
 
