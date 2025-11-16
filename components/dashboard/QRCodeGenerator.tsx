@@ -40,7 +40,9 @@ export default function QRCodeGenerator({
   const handleDownloadPNG = async () => {
     try {
       const buffer = await generateQrCodePNG(publicUrl, 1024)
-      const blob = new Blob([buffer], { type: 'image/png' })
+      // Convert Buffer to Uint8Array for browser compatibility
+      const uint8Array = new Uint8Array(buffer)
+      const blob = new Blob([uint8Array], { type: 'image/png' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
