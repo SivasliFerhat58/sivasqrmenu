@@ -19,22 +19,37 @@ export const authOptions: NextAuthOptions = {
         try {
           const email = credentials.email.toLowerCase().trim()
           console.log('[NextAuth] Attempting login for:', email)
+          console.log('[NextAuth] DATABASE_URL exists:', !!process.env.DATABASE_URL)
+          console.log('[NextAuth] NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET)
           
           // Get user from database
           const user = await getUserByEmail(email)
 
           if (!user) {
             console.error('[NextAuth] User not found:', email)
+            // Try to list all users for debugging
+            try {
+              const { prisma } = await import('@/lib/prisma')
+              const allUsers = await prisma.user.findMany({
+                select: { email: true }
+              })
+              console.log('[NextAuth] Available users in DB:', allUsers.map(u => u.email))
+            } catch (e) {
+              console.error('[NextAuth] Could not list users:', e)
+            }
             return null
           }
 
           console.log('[NextAuth] User found:', user.email, 'Role:', user.role)
+          console.log('[NextAuth] Password hash length:', user.passwordHash?.length || 0)
 
           // Verify password
           const isValid = await verifyPassword(
             credentials.password,
             user.passwordHash
           )
+
+          console.log('[NextAuth] Password verification result:', isValid)
 
           if (!isValid) {
             console.error('[NextAuth] Password verification failed for:', email)
@@ -103,6 +118,6 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug in production to see what's happening
 }
 
