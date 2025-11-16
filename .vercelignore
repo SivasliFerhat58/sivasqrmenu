@@ -1,0 +1,7 @@
+node_modules/@swc
+node_modules/@esbuild
+node_modules/.cache
+node_modules/.bin
+*.log
+.DS_Store
+
