@@ -11,37 +11,42 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required')
-        }
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error('Email and password are required')
+          }
 
-        const user = await getUserByEmail(credentials.email)
+          const user = await getUserByEmail(credentials.email)
 
-        if (!user) {
-          throw new Error('Invalid email or password')
-        }
+          if (!user) {
+            throw new Error('Invalid email or password')
+          }
 
-        const isValid = await verifyPassword(
-          credentials.password,
-          user.passwordHash
-        )
+          const isValid = await verifyPassword(
+            credentials.password,
+            user.passwordHash
+          )
 
-        if (!isValid) {
-          throw new Error('Invalid email or password')
-        }
+          if (!isValid) {
+            throw new Error('Invalid email or password')
+          }
 
-        // Get the first restaurant ID if user is an owner
-        const restaurantId =
-          user.role === 'OWNER' && user.restaurants.length > 0
-            ? user.restaurants[0].id
-            : null
+          // Get the first restaurant ID if user is an owner
+          const restaurantId =
+            user.role === 'OWNER' && user.restaurants.length > 0
+              ? user.restaurants[0].id
+              : null
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          restaurantId,
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            restaurantId,
+          }
+        } catch (error) {
+          console.error('[NextAuth] Authorize error:', error)
+          throw error
         }
       },
     }),
@@ -72,5 +77,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 }
 
