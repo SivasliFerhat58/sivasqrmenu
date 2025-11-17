@@ -28,17 +28,23 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        setError('Geçersiz email veya şifre')
+        console.error('Sign in error:', result.error)
+        setError(result.error === 'CredentialsSignin' 
+          ? 'Geçersiz email veya şifre' 
+          : 'Giriş yapılamadı. Lütfen tekrar deneyin.')
         setIsLoading(false)
         return
       }
 
       if (result?.ok) {
         // Redirect based on role
-        router.push('/dashboard')
-        router.refresh()
+        window.location.href = '/dashboard' // Use window.location for full page reload
+      } else {
+        setError('Giriş yapılamadı. Lütfen tekrar deneyin.')
+        setIsLoading(false)
       }
     } catch (err) {
+      console.error('Sign in exception:', err)
       setError('Bir hata oluştu. Lütfen tekrar deneyin.')
       setIsLoading(false)
     }

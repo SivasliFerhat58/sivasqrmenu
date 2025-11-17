@@ -33,7 +33,7 @@ Her bir environment variable için aşağıdaki adımları tekrarlayın:
    - `[PASSWORD]`: Supabase veya veritabanı şifreniz
    - `[HOST]`: Veritabanı host adresi (örn: `db.xxxxx.supabase.co`)
    - Örnek: `postgresql://postgres:mypassword123@db.abcdefgh.supabase.co:5432/postgres`
-
+   --> postgresql://postgres:[YOUR_PASSWORD]@db.ypnurxfifqtorlsxjpzb.supabase.co:5432/postgres
 3. **Environment** seçeneklerinden:
    - ✅ **Production** (işaretleyin)
    - ✅ **Preview** (işaretleyin)

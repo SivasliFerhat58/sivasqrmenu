@@ -135,14 +135,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000'
-    const protocol = process.env.NODE_ENV === 'development' || baseDomain.includes('localhost') ? 'http' : 'https'
-    const fullUrl = `${protocol}://${baseDomain}/${restaurant.subdomain}`
-
     return NextResponse.json(
       {
         subdomain: restaurant.subdomain,
-        fullUrl: fullUrl,
+        fullUrl: `${restaurant.subdomain}.${process.env.BASE_DOMAIN || 'example.com'}`,
       },
       { status: 200 }
     )
