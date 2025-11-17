@@ -135,10 +135,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Generate full URL using path-based routing: domain.com/restoran1
+    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000'
+    const isDevelopment = process.env.NODE_ENV === 'development' || baseDomain.includes('localhost')
+    const protocol = isDevelopment ? 'http' : 'https'
+    const fullUrl = `${protocol}://${baseDomain}/${restaurant.subdomain}`
+
     return NextResponse.json(
       {
         subdomain: restaurant.subdomain,
-        fullUrl: `${restaurant.subdomain}.${process.env.BASE_DOMAIN || 'example.com'}`,
+        fullUrl: fullUrl,
       },
       { status: 200 }
     )

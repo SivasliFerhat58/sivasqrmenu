@@ -28,21 +28,13 @@ export default async function QRCodePage() {
     )
   }
 
-  // Generate public URL
+  // Generate public URL - Always use path-based routing: domain.com/restoran1
   const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000'
   const isDevelopment = process.env.NODE_ENV === 'development' || baseDomain.includes('localhost')
   const protocol = isDevelopment ? 'http' : 'https'
   
-  // For localhost development, use path-based routing: /restoran1
-  // For production, use subdomain routing: restoran1.example.com
-  let publicUrl: string
-  if (isDevelopment && baseDomain.includes('localhost')) {
-    // Development: path-based routing
-    publicUrl = `${protocol}://${baseDomain}/${restaurant.subdomain}`
-  } else {
-    // Production: subdomain routing
-    publicUrl = `${protocol}://${restaurant.subdomain}.${baseDomain}`
-  }
+  // Always use path-based routing: domain.com/restoran1
+  const publicUrl = `${protocol}://${baseDomain}/${restaurant.subdomain}`
 
   return (
     <div>
